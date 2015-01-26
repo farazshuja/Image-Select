@@ -21,8 +21,9 @@
         //  Extend the original 'chosen' method to support images
 
         chosen: function(options) {
-
             options = options || {};
+			//options.containerWindow 	--container in which chosen has to decide to show upward or downward dropdown
+			options.mustInsideWindow = options.mustInsideWindow || true;
 
             var html_template = options.html_template || fn_template;
 
@@ -77,10 +78,10 @@
 
                 var $this, chosen;
 
-                $this = $(this);
-
-                chosen = $this.data('chosen');
-
+                $this = $(this);				
+				
+                chosen = $this.data('chosen');				
+					
                 $this.on("change", function change(evt,selected){
                     // summery
                     //      This function is triggered when the chosen instance has changed,
@@ -89,8 +90,7 @@
                     // selected: Object
                     //      Contains the value of the selected
                     //
-                    var options = chosen.form_field.options;
-
+                    var options = chosen.form_field.options;					
                     if(selected != undefined && selected.selected != undefined && options && options.length){
 
                         for(var i = 0 ; i < options.length; i++){
@@ -103,20 +103,46 @@
 
                                 // For multiple selection
                                 span = $(chosen.container).find('.chosen-choices span').last()
-                                span.find('img').remove()
+                                span.find('img').remove();
+								span.empty();
                                 span.prepend(template.replace('{class_name}','chose-image'));
 
                                 // For single select
                                 span = $(chosen.container).find('.chosen-single span')
-                                span.find('img').remove()
+                                span.find('img').remove();
+								span.empty();
                                 span.prepend(template.replace('{class_name}','chose-image-small'));
+								
                             }
                         }
                     }
                 });
-
-                $this.on("chosen:hiding_dropdown", function(e, _c){
-
+				
+				//handle visiblity of dropdown inside the window or container
+				chosen.container.on("mousedown.chosen", function(e, _c){						
+					if(options.mustInsideWindow){
+						//var $this = $(that);
+						var top = chosen.container.position().top;
+						var heightOfChosen = chosen.container.height();      //height of the select
+						var containerHeight = options.containerWindow ? $(options.containerWindow).height() : $(window).height();     //height of the container in which chosen is shown
+						//always show it downward if dc is not available/null
+						containerHeight = containerHeight == null ? 10000 : containerHeight;
+						var $cd = chosen.container.find('.chosen-drop');	
+						//save the value in common variable
+						chosen.__heightDD = chosen.__heightDD || $cd.height();						
+						if(containerHeight > (top+chosen.__heightDD)){
+							//show down ward
+							$cd.css('margin-top', '').removeClass('upward_state');
+						}
+						else {
+							//show upward
+							var mt = -1*(heightOfChosen + chosen.__heightDD) - 3;								
+							$cd.css('margin-top', mt + 'px').addClass('upward_state');
+						}						
+					}
+				});
+				
+                $this.on("chosen:hiding_dropdown", function(e, _c){					
                     var options  = chosen.form_field.options;
 
                     var selected = $(chosen.form_field).find(':selected');
@@ -148,10 +174,10 @@
                     // evt: Event
                     //      The event object
                     // _chosen: Object {chosen:Chosen}
-                    //      Contains the current instance of Chosen class
+                    //      Contains the current instance of Chosen class					
                     var lis = $(chosen.container).find('.chosen-drop ul li:not(:has(img))')
-                    var options = $(chosen.form_field).find('optgroup, option');
-                    
+					//var lis = $(chosen.container).find('.chosen-drop ul li');
+                    var options = $(chosen.form_field).find('optgroup, option');                    
                     for(var i = 0; i < lis.length; i++){
                         var li = lis[i];
                         var option = options[i];
@@ -159,7 +185,11 @@
 
                         if(img_src != undefined){
                             var template = html_template.replace('{url}',img_src);
+							var text = $(li).text();
+							$(li).empty();
+							$(li).append('<span>' + text + '</span>');
                             $(li).prepend(template.replace('{class_name}','chose-image-list'));
+							$(li).addClass('img-select');
                         }
                     }
                 });
